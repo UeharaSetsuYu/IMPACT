@@ -255,19 +255,25 @@ def PrototypeMatching(latent_list, mask, criterion, config, model, eps=1e-8):
                 z_v = latent_list[v][pair_mask]
                 z_u = latent_list[u][pair_mask]
 
+                step = 0
+
                 T_v = (
-                    Transition(proto_v, z_u)
-                    @ Transition(z_v, proto_u)
-                    @ Transition(proto_u, z_v)
-                    @ Transition(z_u, proto_v)
+                        Transition(proto_v, z_u)
+                        @ Transition(z_u, z_u) ** step
+                        @ Transition(z_u, proto_u)
+                        @ Transition(proto_u, z_v)
+                        @ Transition(z_v, z_v) ** step
+                        @ Transition(z_v, proto_v)
                 )
                 loss_v = -torch.log(torch.diagonal(T_v, dim1=-2, dim2=-1).clamp_min(eps)).mean()
 
                 T_u = (
-                    Transition(proto_u, z_v)
-                    @ Transition(z_u, proto_v)
-                    @ Transition(proto_v, z_u)
-                    @ Transition(z_v, proto_u)
+                        Transition(proto_u, z_v)
+                        @ Transition(z_v, z_v) ** step
+                        @ Transition(z_v, proto_v)
+                        @ Transition(proto_v, z_u)
+                        @ Transition(z_u, z_u) ** step
+                        @ Transition(z_u, proto_u)
                 )
                 loss_u = -torch.log(torch.diagonal(T_u, dim1=-2, dim2=-1).clamp_min(eps)).mean()
 
@@ -283,22 +289,22 @@ def PrototypeMatching(latent_list, mask, criterion, config, model, eps=1e-8):
                     continue
                 step = 1
                 T_v = (
-                    Transition(proto_v, z_u)
-                    @ Transition(z_u, z_u) ** step
-                    @ Transition(z_u, proto_u)
-                    @ Transition(proto_u, z_v)
-                    @ Transition(z_v, z_v) ** step
-                    @ Transition(z_v, proto_v)
+                        Transition(proto_v, z_u)
+                        @ Transition(z_u, z_u) ** step
+                        @ Transition(z_u, proto_u)
+                        @ Transition(proto_u, z_v)
+                        @ Transition(z_v, z_v) ** step
+                        @ Transition(z_v, proto_v)
                 )
                 loss_v = -torch.log(torch.diagonal(T_v, dim1=-2, dim2=-1).clamp_min(eps)).mean()
 
                 T_u = (
-                    Transition(proto_u, z_v)
-                    @ Transition(z_v, z_v) ** step
-                    @ Transition(z_v, proto_v)
-                    @ Transition(proto_v, z_u)
-                    @ Transition(z_u, z_u) ** step
-                    @ Transition(z_u, proto_u)
+                        Transition(proto_u, z_v)
+                        @ Transition(z_v, z_v) ** step
+                        @ Transition(z_v, proto_v)
+                        @ Transition(proto_v, z_u)
+                        @ Transition(z_u, z_u) ** step
+                        @ Transition(z_u, proto_u)
                 )
                 loss_u = -torch.log(torch.diagonal(T_u, dim1=-2, dim2=-1).clamp_min(eps)).mean()
 
@@ -675,7 +681,7 @@ def Training(args, config):
             loss_mknn = mknn_contrastive_loss(
                 latent_list=latent_list,
                 mask = mask,
-                topk=5,
+                topk=3,
                 temperature=0.2,
                 intra_weight=1.0,
                 cross_weight=mknn_cross_weight,
@@ -710,7 +716,7 @@ def Training(args, config):
 
 
 
-        scheduler.step()  #
+        # scheduler.step()  #
 
         epoch_msg = (
             f'[Epoch {epoch + 1} | {epochs}] Loss: {loss_all: .6f}, Loss_rec: {loss_1: .6f}, '
