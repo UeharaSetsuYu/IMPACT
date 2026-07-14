@@ -419,6 +419,24 @@ def dataset_config(args):
             pre_train_epoch = 100,
             warming_up=100,
         )
+
+    elif Dataset == 'NoisyMNIST':
+        return dict(
+            view_num=2,
+            seed=5,
+            class_num=10,
+            epochs=300,
+            learning_rate=1e-4,
+            Autoencoder=dict(
+                arch1=[784, 1024, 1024, 1024, 128],
+                arch2=[784, 1024, 1024, 1024, 128],
+                activations='relu',
+                batchnorm=True,
+            ),
+            batch_size = 1024,
+            pre_train_epoch = 100,
+            warming_up=100,
+        )
 if __name__ == '__main__':
     args = parse_args()
     print(args)

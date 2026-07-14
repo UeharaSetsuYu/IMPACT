@@ -281,24 +281,28 @@ def PrototypeMatching(latent_list, mask, criterion, config, model, eps=1e-8):
                 z_u = latent_list[u][mask_u]
                 if z_v.size(0) == 0 or z_u.size(0) == 0:
                     continue
-
+                step = 1
                 T_v = (
                     Transition(proto_v, z_u)
+                    @ Transition(z_u, z_u) ** step
                     @ Transition(z_u, proto_u)
                     @ Transition(proto_u, z_v)
+                    @ Transition(z_v, z_v) ** step
                     @ Transition(z_v, proto_v)
                 )
                 loss_v = -torch.log(torch.diagonal(T_v, dim1=-2, dim2=-1).clamp_min(eps)).mean()
 
                 T_u = (
                     Transition(proto_u, z_v)
+                    @ Transition(z_v, z_v) ** step
                     @ Transition(z_v, proto_v)
                     @ Transition(proto_v, z_u)
+                    @ Transition(z_u, z_u) ** step
                     @ Transition(z_u, proto_u)
                 )
                 loss_u = -torch.log(torch.diagonal(T_u, dim1=-2, dim2=-1).clamp_min(eps)).mean()
 
-                fallback_loss = 0.05 * (loss_v + loss_u)
+                fallback_loss = 0.5 * (loss_v + loss_u)
                 if visit_weight > 0.0:
                     fallback_loss = fallback_loss + visit_weight * 0.5 * (visit_loss(T_v, eps) + visit_loss(T_u, eps))
                 loss_list.append(fallback_loss)
