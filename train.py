@@ -219,7 +219,7 @@ def Transition(x, y, normalize = True,   tau = 0.2, eps = 1e-8):
     return P_xy
 
 
-def PrototypeMatching(latent_list, mask, criterion, config, model, eps=1e-8):
+def PrototypeMatching(latent_list, mask, epoch, config, model, eps=1e-8):
     """
     Cycle-consistency prototype alignment.
 
@@ -255,7 +255,7 @@ def PrototypeMatching(latent_list, mask, criterion, config, model, eps=1e-8):
                 z_v = latent_list[v][pair_mask]
                 z_u = latent_list[u][pair_mask]
 
-                step = 0
+                step = 1
 
                 T_v = (
                         Transition(proto_v, z_u)
@@ -277,6 +277,16 @@ def PrototypeMatching(latent_list, mask, criterion, config, model, eps=1e-8):
                 )
                 loss_u = -torch.log(torch.diagonal(T_u, dim1=-2, dim2=-1).clamp_min(eps)).mean()
 
+                if epoch == 20000:
+                    plot_heatmap_academic(
+                        T_u.detach().cpu().numpy(),
+                        save_path="transition_heatmap",
+                        x_label="Destination Prototype",
+                        y_label="Starting Prototype",
+                        title=None,
+                        cmap="GnBu"  # 冷色调，推荐
+                    )
+
                 pair_loss = 0.5 * (loss_v + loss_u)
                 if visit_weight > 0.0:
                     pair_loss = pair_loss + visit_weight * 0.5 * (visit_loss(T_v, eps) + visit_loss(T_u, eps))
@@ -287,7 +297,7 @@ def PrototypeMatching(latent_list, mask, criterion, config, model, eps=1e-8):
                 z_u = latent_list[u][mask_u]
                 if z_v.size(0) == 0 or z_u.size(0) == 0:
                     continue
-                step = 1
+                step = 0
                 T_v = (
                         Transition(proto_v, z_u)
                         @ Transition(z_u, z_u) ** step
@@ -312,6 +322,7 @@ def PrototypeMatching(latent_list, mask, criterion, config, model, eps=1e-8):
                 if visit_weight > 0.0:
                     fallback_loss = fallback_loss + visit_weight * 0.5 * (visit_loss(T_v, eps) + visit_loss(T_u, eps))
                 loss_list.append(fallback_loss)
+
 
     if len(loss_list) == 0:
         return torch.tensor(0.0, device=latent_list[0].device)
@@ -563,7 +574,7 @@ def Training(args, config):
         dataset = build_dataset_unpair(args)
     elif args.data_model == 'noisy':
         dataset = build_dataset_nmvc(args)
-    elif args.data_model in ['UI', 'UN', 'IN', 'UIN']:
+    elif args.data_model in ['UI', 'UN', 'IN', 'UIN']:  #
         dataset = build_dataset_Multi(args)
     else:
         raise ValueError(f"Unsupported data_model: {args.data_model}")
@@ -693,7 +704,7 @@ def Training(args, config):
             loss += mknn_weight * loss_mknn
 
             if proto_progress > 0.0:
-                loss_trans = PrototypeMatching(latent_list, mask, criterion, config, model)
+                loss_trans = PrototypeMatching(latent_list, mask, epoch, config, model)
                 loss_3 += loss_trans.item()
                 loss += match_weight * loss_trans
 

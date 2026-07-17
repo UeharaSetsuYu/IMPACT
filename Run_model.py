@@ -86,7 +86,7 @@ def main():
         seeds = [10, 15, 20]
 
     if args.All_test:
-        missing_rate_list = [0.0, 0.1, 0.2, 0.3, 0.4,
+        missing_rate_list = [0.1, 0.2, 0.3, 0.4,
                              0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
         print("ALL MISSINGRATE: ", missing_rate_list)
     else:
@@ -103,9 +103,9 @@ def main():
     init_seed = seeds
 
     for missrate in missing_rate_list:
-        for iii in [ 1 ]:
-            for jjj in [1]:
-                for kkk in [ 1]:
+        for iii in [ 0.01, 0.1, 1, 10, 100 ]:
+            for jjj in [ 0.01, 0.1, 1, 10, 100 ]:
+                for kkk in [ 0.01, 0.1, 1, 10, 100 ]:
                     print(f'lamda_1: {iii}, lamda_2: {jjj}, lamda_3: {kkk}')
                     args.lamda_1, args.lamda_2, args.lamda_3 = iii, jjj, kkk
                     print("\n" + "=" * 90)
